@@ -23,15 +23,16 @@
 // *******************************************************************
 
 // ########################## DEFINES ##########################
-#define HOVER_SERIAL_BAUD   38400       // [-] Baud rate for HoverSerial (used to communicate with the hoverboard)
-#define SERIAL_BAUD         115200      // [-] Baud rate for built-in Serial (used for the Serial Monitor)
+#define HOVER_SERIAL_BAUD   38400       // [-] Baud rate for HoverSerial2 (used to communicate with the hoverboard)
+#define SERIAL_BAUD         9600      // [-] Baud rate for built-in Serial (used for the Serial Monitor)
 #define START_FRAME         0xABCD     	// [-] Start frme definition for reliable serial communication
 #define TIME_SEND           100         // [ms] Sending time interval
 #define SPEED_MAX_TEST      300         // [-] Maximum speed for testing
 //#define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 
 #include <SoftwareSerial.h>
-SoftwareSerial HoverSerial(2,3); 		    // RX, TX
+SoftwareSerial HoverSerial2(2,3); 		    // RX2, TX2
+SoftwareSerial HoverSerial3(4,5);         // RX3, TX3
 
 // Global variables
 uint8_t idx = 0;                        // Index for new data pointer
@@ -68,12 +69,13 @@ void setup()
   Serial.begin(SERIAL_BAUD);
   Serial.println("Hoverboard Serial v1.0");
     
-  HoverSerial.begin(HOVER_SERIAL_BAUD);
+  HoverSerial2.begin(HOVER_SERIAL_BAUD);
+  HoverSerial3.begin(HOVER_SERIAL_BAUD);
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
 // ########################## SEND ##########################
-void Send(int16_t uSteer, int16_t uSpeed)
+void Send2(int16_t uSteer, int16_t uSpeed)
 {
   // Create command
   Command.start    = (uint16_t)START_FRAME;
@@ -82,15 +84,27 @@ void Send(int16_t uSteer, int16_t uSpeed)
   Command.checksum = (uint16_t)(Command.start ^ Command.steer ^ Command.speed);
 
   // Write to Serial
-  HoverSerial.write((uint8_t *) &Command, sizeof(Command)); 
+  HoverSerial2.write((uint8_t *) &Command, sizeof(Command)); 
+}
+
+void Send3(int16_t uSteer, int16_t uSpeed)
+{
+  // Create command
+  Command.start    = (uint16_t)START_FRAME;
+  Command.steer    = (int16_t)uSteer;
+  Command.speed    = (int16_t)uSpeed;
+  Command.checksum = (uint16_t)(Command.start ^ Command.steer ^ Command.speed);
+
+  // Write to Serial
+  HoverSerial3.write((uint8_t *) &Command, sizeof(Command)); 
 }
 
 // ########################## RECEIVE ##########################
-void Receive()
+void Receive2()
 {
 	// Check for new data availability in the Serial buffer
-	if (HoverSerial.available()) {
-		incomingByte 	  = HoverSerial.read();		                              // Read the incoming byte
+	if (HoverSerial2.available()) {
+		incomingByte 	  = HoverSerial2.read();		                              // Read the incoming byte
 		bufStartFrame	= ((uint16_t)(incomingByte) << 8) | incomingBytePrev;	  // Construct the start frame		
 	}
 	else {
@@ -126,8 +140,8 @@ void Receive()
 			memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
 		  
 			// Print data to built-in Serial
-			Serial.print("1: ");   Serial.print(Feedback.cmd1);
-			Serial.print(" 2: ");  Serial.print(Feedback.cmd2);
+			Serial.print("1: ");   Serial.print((Feedback.cmd1+Feedback.cmd2)/2);
+			Serial.print(" 2: ");  Serial.print((Feedback.cmd2-Feedback.cmd1)/2);
 			Serial.print(" 3: ");  Serial.print(Feedback.speedR_meas);
 			Serial.print(" 4: ");  Serial.print(Feedback.speedL_meas);
 			Serial.print(" 5: ");  Serial.print(Feedback.batVoltage);
@@ -143,30 +157,108 @@ void Receive()
 	incomingBytePrev 	= incomingByte;
 }
 
+void Receive3()
+{
+  // Check for new data availability in the Serial buffer
+  if (HoverSerial3.available()) {
+    incomingByte    = HoverSerial3.read();                                  // Read the incoming byte
+    bufStartFrame = ((uint16_t)(incomingByte) << 8) | incomingBytePrev;   // Construct the start frame    
+  }
+  else {
+    return;
+  }
+
+  // If DEBUG_RX is defined print all incoming bytes
+  #ifdef DEBUG_RX
+    Serial.print(incomingByte);
+    return;
+  #endif      
+  
+  // Copy received data
+  if (bufStartFrame == START_FRAME) {                     // Initialize if new data is detected
+    p     = (byte *)&NewFeedback;
+    *p++  = incomingBytePrev;
+    *p++  = incomingByte;
+    idx   = 2;  
+  } else if (idx >= 2 && idx < sizeof(SerialFeedback)) {  // Save the new received data
+    *p++  = incomingByte; 
+    idx++;
+  } 
+  
+  // Check if we reached the end of the package
+  if (idx == sizeof(SerialFeedback)) {    
+    uint16_t checksum;
+    checksum = (uint16_t)(NewFeedback.start ^ NewFeedback.cmd1 ^ NewFeedback.cmd2 ^ NewFeedback.speedR_meas ^ NewFeedback.speedL_meas
+          ^ NewFeedback.batVoltage ^ NewFeedback.boardTemp ^ NewFeedback.cmdLed);
+  
+    // Check validity of the new data
+    if (NewFeedback.start == START_FRAME && checksum == NewFeedback.checksum) {
+      // Copy the new data
+      memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
+      
+      // Print data to built-in Serial
+      Serial.print("1: ");   Serial.print((Feedback.cmd1+Feedback.cmd2)/2);
+      Serial.print(" 2: ");  Serial.print((Feedback.cmd2-Feedback.cmd1)/2);
+      Serial.print(" 3: ");  Serial.print(Feedback.speedR_meas);
+      Serial.print(" 4: ");  Serial.print(Feedback.speedL_meas);
+      Serial.print(" 5: ");  Serial.print(Feedback.batVoltage);
+      Serial.print(" 6: ");  Serial.print(Feedback.boardTemp);
+      Serial.print(" 7: ");  Serial.println(Feedback.cmdLed);
+    } else {
+      Serial.println("Non-valid data skipped");
+    }
+    idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
+  }
+  
+  // Update previous states
+  incomingBytePrev  = incomingByte;
+}
+
 // ########################## LOOP ##########################
 
 unsigned long iTimeSend = 0;
 int iTestMax = SPEED_MAX_TEST;
 int iTest = 0;
+int term1 = 0;
+int term2 = 0;
+int term3 = 0;
+int term4 = 0;
+//int r2t(term1,term2) 
+//{
+//  int a1=term1+term2;
+//  int a2term2-term1;
+//  return(a1,a2);
+//}
 
 void loop(void)
 { 
   unsigned long timeNow = millis();
 
+  if (Serial.available()) 
+  {
+    term1=Serial.parseInt();
+    term2=Serial.parseInt();
+    term3=Serial.parseInt();
+    term4=Serial.parseInt();
+    Serial.read();
+  }
+  
   // Check for new received data
-  Receive();
-
+  Receive2();
+  Receive3();
+  
   // Send commands
   if (iTimeSend > timeNow) return;
   iTimeSend = timeNow + TIME_SEND;
-  Send(0, SPEED_MAX_TEST - 2*abs(iTest));
+  Send2(term1-term2,term1+term2);
+  Send3(term3-term4,term3+term4);
 
   // Calculate test command signal
   iTest += 10;
   if (iTest > iTestMax) iTest = -iTestMax;
 
   // Blink the LED
-  digitalWrite(LED_BUILTIN, (timeNow%2000)<1000);
+  digitalWrite(LED_BUILTIN, (millis()%2000)<1000);
 }
 
 // ########################## END ##########################
