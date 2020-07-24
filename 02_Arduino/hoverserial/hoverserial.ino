@@ -24,7 +24,7 @@
 
 // ########################## DEFINES ##########################
 #define HOVER_SERIAL_BAUD   38400       // [-] Baud rate for HoverSerial2 (used to communicate with the hoverboard)
-#define SERIAL_BAUD         9600      // [-] Baud rate for built-in Serial (used for the Serial Monitor)
+#define SERIAL_BAUD         115200      // [-] Baud rate for built-in Serial (used for the Serial Monitor)
 #define START_FRAME         0xABCD     	// [-] Start frme definition for reliable serial communication
 #define TIME_SEND           100         // [ms] Sending time interval
 #define SPEED_MAX_TEST      300         // [-] Maximum speed for testing
@@ -67,7 +67,7 @@ SerialFeedback NewFeedback;
 void setup() 
 {
   Serial.begin(SERIAL_BAUD);
-  Serial.println("Hoverboard Serial v1.0");
+  Serial.println("Hoverboard Serial v1.1");
     
   HoverSerial2.begin(HOVER_SERIAL_BAUD);
   HoverSerial3.begin(HOVER_SERIAL_BAUD);
@@ -140,8 +140,8 @@ void Receive2()
 			memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
 		  
 			// Print data to built-in Serial
-			Serial.print("1: ");   Serial.print((Feedback.cmd1+Feedback.cmd2)/2);
-			Serial.print(" 2: ");  Serial.print((Feedback.cmd2-Feedback.cmd1)/2);
+			Serial.print("1: ");   Serial.print(Feedback.cmd1);
+			Serial.print(" 2: ");  Serial.print(Feedback.cmd2);
 			Serial.print(" 3: ");  Serial.print(Feedback.speedR_meas);
 			Serial.print(" 4: ");  Serial.print(Feedback.speedL_meas);
 			Serial.print(" 5: ");  Serial.print(Feedback.batVoltage);
@@ -197,8 +197,8 @@ void Receive3()
       memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
       
       // Print data to built-in Serial
-      Serial.print("1: ");   Serial.print((Feedback.cmd1+Feedback.cmd2)/2);
-      Serial.print(" 2: ");  Serial.print((Feedback.cmd2-Feedback.cmd1)/2);
+      Serial.print("1: ");   Serial.print(Feedback.cmd1);
+      Serial.print(" 2: ");  Serial.print(Feedback.cmd2);
       Serial.print(" 3: ");  Serial.print(Feedback.speedR_meas);
       Serial.print(" 4: ");  Serial.print(Feedback.speedL_meas);
       Serial.print(" 5: ");  Serial.print(Feedback.batVoltage);
@@ -250,9 +250,8 @@ void loop(void)
   // Send commands
   if (iTimeSend > timeNow) return;
   iTimeSend = timeNow + TIME_SEND;
-  Send2(term1-term2,term1+term2);
-  Send3(term3-term4,term3+term4);
-
+  Send2(term1,term2);
+  Send3(term3,term4);
   // Calculate test command signal
   iTest += 10;
   if (iTest > iTestMax) iTest = -iTestMax;

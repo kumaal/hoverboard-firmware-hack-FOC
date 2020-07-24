@@ -1305,22 +1305,24 @@ void rateLimiter16(int16_t u, int16_t rate, int16_t *y) {
   * Parameters:   SPEED_COEFFICIENT, STEER_COEFFICIENT  = fixdt(0,16,14)
   */
 void mixerFcn(int16_t rtu_speed, int16_t rtu_steer, int16_t *rty_speedR, int16_t *rty_speedL) {
-  int16_t prodSpeed;
-  int16_t prodSteer;
-  int32_t tmp;
+  // int16_t prodSpeed;
+  // int16_t prodSteer;
+  // int32_t tmp;
 
-  prodSpeed   = (int16_t)((rtu_speed * (int16_t)SPEED_COEFFICIENT) >> 14);
-  prodSteer   = (int16_t)((rtu_steer * (int16_t)STEER_COEFFICIENT) >> 14);
+  // prodSpeed   = (int16_t)((rtu_speed * (int16_t)SPEED_COEFFICIENT) >> 14);
+  // prodSteer   = (int16_t)((rtu_steer * (int16_t)STEER_COEFFICIENT) >> 14);
 
-  tmp         = prodSpeed - prodSteer;  
-  tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
-  *rty_speedR = (int16_t)(tmp >> 4);        // Convert from fixed-point to int 
-  *rty_speedR = CLAMP(*rty_speedR, INPUT_MIN, INPUT_MAX);
+  // tmp         = prodSpeed - prodSteer;  
+  // tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
+  // *rty_speedR = (int16_t)(tmp >> 4);        // Convert from fixed-point to int 
+  // *rty_speedR = CLAMP(*rty_speedR, INPUT_MIN, INPUT_MAX);
 
-  tmp         = prodSpeed + prodSteer;
-  tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
-  *rty_speedL = (int16_t)(tmp >> 4);        // Convert from fixed-point to int
-  *rty_speedL = CLAMP(*rty_speedL, INPUT_MIN, INPUT_MAX);
+  // tmp         = prodSpeed + prodSteer;
+  // tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
+  // *rty_speedL = (int16_t)(tmp >> 4);        // Convert from fixed-point to int
+  // *rty_speedL = CLAMP(*rty_speedL, INPUT_MIN, INPUT_MAX);
+  rty_speedL=CLAMP(rtu_steer,INPUT_MIN, INPUT_MAX);
+  rty_speedR=CLAMP(rtu_speed,INPUT_MIN, INPUT_MAX);
 }
 
 
