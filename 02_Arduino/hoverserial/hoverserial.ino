@@ -238,11 +238,15 @@ void loop(void)
   {
     term1=Serial.parseInt();
     term2=Serial.parseInt();
-    term3=Serial.parseInt();
-    term4=Serial.parseInt();
+    if (Serial.available()>1) 
+    {
+      term3=Serial.parseInt();
+      term4=Serial.parseInt();
+    } else { term3=term1;term4=term2; }
     Serial.read();
   }
-  
+
+   // delay(50);digitalWrite(7,0);}
   // Check for new received data
   Receive2();
   Receive3();
@@ -256,6 +260,23 @@ void loop(void)
   iTest += 10;
   if (iTest > iTestMax) iTest = -iTestMax;
 
+//  if ((int)(term1)==711) 
+//  {
+//    if ((int)(term2)==1)
+//    {
+//    term1=0;
+//    term2=0;
+//    term3=0;
+//    term4=0;
+//    }
+//    if ((int)(term2)==0)
+//    {
+//    term1=0;
+//    term2=0;
+//    term3=0;
+//    term4=0;
+//    }
+//  }
   // Blink the LED
   digitalWrite(LED_BUILTIN, (millis()%2000)<1000);
 }
