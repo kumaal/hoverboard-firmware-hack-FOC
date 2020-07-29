@@ -276,6 +276,40 @@ int main(void) {
       speedR = CLAMP((int)(cmd2), -1000, 1000);
       // mixerFcn(speed << 4, steer << 4, &speedR, &speedL);   // This function implements the equations above
 
+
+      // ####### CHECK FOR COMMANDS #######
+      if ((cmd1 == 711 && cmd2 == 0)) 
+      {
+        poweroff();
+      }
+
+      // ####### SPEED CORRECTION #######
+      if ((abs(cmd1-rtY_Left.n_mot) > 20))
+      {
+        if ((cmd1>rtY_Left.n_mot))
+        {
+          speedL=speedL+10;
+        } 
+        else
+        {
+          speedL=speedL-10;
+        }  
+      }
+
+      if ((abs(cmd2-rtY_Right.n_mot) > 20))
+      {
+        if ((cmd1>rtY_Right.n_mot))
+        {
+          speedR=speedR+10;
+        } 
+        else
+        {
+          speedR=speedR-10;
+        }  
+      }
+
+
+      
       // ####### SET OUTPUTS (if the target change is less than +/- 100) #######
       if ((speedL > lastSpeedL-100 && speedL < lastSpeedL+100) && (speedR > lastSpeedR-100 && speedR < lastSpeedR+100)) {
         #ifdef INVERT_R_DIRECTION
@@ -430,7 +464,7 @@ int main(void) {
 
     // ####### FEEDBACK SERIAL OUT #######
     #if defined(FEEDBACK_SERIAL_USART2) || defined(FEEDBACK_SERIAL_USART3)
-      if (main_loop_counter % 2 == 0) {    // Send data periodically every 10 ms
+      if (main_loop_counter % 20 == 0) {    // Send data periodically every 10 ms
         Feedback.start	        = (uint16_t)SERIAL_START_FRAME;
         Feedback.cmd1           = (int16_t)cmd1;
         Feedback.cmd2           = (int16_t)cmd2;
