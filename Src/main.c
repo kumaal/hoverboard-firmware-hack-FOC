@@ -272,8 +272,8 @@ int main(void) {
       #endif
 
       // ####### MIXER #######
-      speedL = CLAMP((int)(cmd1), -1000, 1000);
-      speedR = CLAMP((int)(cmd2), -1000, 1000);
+      // speedL = CLAMP((int)(cmd1), -1000, 1000);
+      // speedR = CLAMP((int)(cmd2), -1000, 1000);
       // mixerFcn(speed << 4, steer << 4, &speedR, &speedL);   // This function implements the equations above
 
 
@@ -284,28 +284,63 @@ int main(void) {
       }
 
       // ####### SPEED CORRECTION #######
-      if ((abs(cmd1-rtY_Left.n_mot) > 20))
+// if abs(set_speed-real_speed) > 50 set_speed+=20
+      if ((abs(cmd1-rtY_Left.n_mot) > 50))
       {
         if ((cmd1>rtY_Left.n_mot))
         {
-          speedL=speedL+10;
+          speedL=speedL+20;
         } 
         else
         {
-          speedL=speedL-10;
+          speedL=speedL-20;
         }  
       }
-
-      if ((abs(cmd2-rtY_Right.n_mot) > 20))
+      
+      if ((abs(cmd2+rtY_Right.n_mot) > 50))
       {
-        if ((cmd1>rtY_Right.n_mot))
+        if ((cmd2>-rtY_Right.n_mot))
         {
-          speedR=speedR+10;
+          speedR=speedR+20;
         } 
         else
         {
-          speedR=speedR-10;
+          speedR=speedR-20;
         }  
+      }
+// if abs(set_speed-real_speed) > 10 set_speed+=4
+      if ((abs(cmd1-rtY_Left.n_mot) > 10))
+      {
+        if ((cmd1>rtY_Left.n_mot))
+        {
+          speedL=speedL+4;
+        } 
+        else
+        {
+          speedL=speedL-4;
+        }  
+      }
+      
+      if ((abs(cmd2+rtY_Right.n_mot) > 10))
+      {
+        if ((cmd2>-rtY_Right.n_mot))
+        {
+          speedR=speedR+4;
+        } 
+        else
+        {
+          speedR=speedR-4;
+        }  
+      }
+// if speed = 0 set to 0
+      if ((cmd1 = 0))
+      {
+        speedL=0;  
+      }
+      
+      if ((cmd2 = 0))
+      {
+        speedR=0;
       }
 
 
@@ -466,8 +501,8 @@ int main(void) {
     #if defined(FEEDBACK_SERIAL_USART2) || defined(FEEDBACK_SERIAL_USART3)
       if (main_loop_counter % 20 == 0) {    // Send data periodically every 10 ms
         Feedback.start	        = (uint16_t)SERIAL_START_FRAME;
-        Feedback.cmd1           = (int16_t)cmd1;
-        Feedback.cmd2           = (int16_t)cmd2;
+        Feedback.cmd1           = (int16_t)speedL;
+        Feedback.cmd2           = (int16_t)speedR;
         Feedback.speedR_meas	  = (int16_t)rtY_Right.n_mot;
         Feedback.speedL_meas	  = (int16_t)rtY_Left.n_mot;
         Feedback.batVoltage	    = (int16_t)(batVoltage * BAT_CALIB_REAL_VOLTAGE / BAT_CALIB_ADC);
